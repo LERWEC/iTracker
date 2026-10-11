@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker
+      POSTGRES_DB: tracker
+    ports:
+      - 5432:5432
+    volumes:
+      - tracker-pgdata:/var/lib/postgresql/data
+
+volumes:
+  tracker-pgdata:
