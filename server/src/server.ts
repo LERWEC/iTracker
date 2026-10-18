@@ -40,9 +40,25 @@ const start  = async () => {
 
 start();
 
-app.setErrorHandler((error: FastifyError, _req, reply) => {
+app.setErrorHandler((error: FastifyError | z.ZodError, _req, reply) => {
     console.error(error);
+
+    if(error instanceof z.ZodError) {
+        return reply.code(400).send({
+            error: 'validation',
+            message: 'Invalid body'
+        })
+    }
+
+    if(error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+        return reply.code(409).send({
+            error: 'conflict',
+            message: 'Conflict'
+        })
+    }
+
     const statusCode = error.statusCode ?? 500;
+
     reply.code(statusCode).send({
         error: statusCode >= 500 ? 'internal' : 'validation',
         message: statusCode >= 500 ? 'Internal server error' : 'Invalid body'
@@ -53,7 +69,7 @@ app.get('/health', async (_req, reply) => {
     try {
         await pool.query('SELECT 1');
         return { status: 'ok' }
-    }catch(err) {
+    } catch(err) {
         console.error(err);
         reply.code(503)
         return { status: 'error' }
@@ -74,100 +90,6 @@ async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
 }
 
 // auth
-
-const registerBodySchema = z.object({
-    email: z.email(),
-    password: z.string().min(8),
-    name: z.string().min(1),
-});
-
-app.post('/auth/register', async (req, reply) => {
-    try{
-        const body = registerBodySchema.parse(req.body);
-        const email = body.email.toLowerCase();
-        const passwordHash = await hash(body.password);
-
-       const result = await pool.query(
-            'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, created_at',
-            [email, passwordHash, body.name]
-        )
-
-        const user = result.rows[0];
-
-        const token = await reply.jwtSign({ sub: user.id });
-
-        reply.setCookie('token', token, {
-            httpOnly: true,
-            path: '/',
-            sameSite: 'lax',
-        })
-        
-        return reply.code(201).send(user)
-    }
-    catch(err) {
-        if(err && typeof err === 'object' && 'code' in err && err.code === '23505') {
-            return reply.code(409).send({
-                error: 'conflict',
-                message: 'Email already taken'
-            })
-        }
-
-        return reply.code(400).send({
-            error: 'validation',
-            message: 'Invalid body'
-        })
-    }
-});
-
-const loginBodySchema = z.object({
-    email: z.email(),
-    password: z.string().min(8),
-});
-
-app.post('/auth/login', async (req, reply) => {
-    try {
-        const body = loginBodySchema.parse(req.body);
-        const email = body.email.toLowerCase();
-
-        const result = await pool.query('SELECT id, name, password_hash FROM users WHERE email = $1', [email]);
-
-        if(!result.rows.length) {
-            return reply.code(401).send({
-                error: 'unauthorized',
-                message: 'Invalid email or password'
-            })
-        }
-
-        const user = result.rows[0];
-
-        const ok = await verify(user.password_hash, body.password);
-
-        if(!ok) {
-            return reply.code(401).send({
-                error: 'unauthorized',
-                message: 'Invalid email or password'
-            })
-        }
-        const token = await reply.jwtSign({ sub: user.id });
-
-        reply.setCookie('token', token, {
-            httpOnly: true,
-            path: '/',
-            sameSite: 'lax',
-        })
-
-        return reply.send({
-            id: user.id,
-            name: user.name,
-            email: body.email,
-        })
-    } catch(err) {
-        return reply.code(400).send({
-            error: 'validation',
-            message: 'Invalid body'
-        })
-    }
-})
 
 app.get('/auth/me', async (req, reply) => {
     try {
@@ -193,6 +115,79 @@ app.get('/auth/me', async (req, reply) => {
     }
 })
 
+const registerBodySchema = z.object({
+    email: z.email(),
+    password: z.string().min(8),
+    name: z.string().min(1),
+});
+
+app.post('/auth/register', async (req, reply) => {
+    const body = registerBodySchema.parse(req.body);
+    const email = body.email.toLowerCase();
+    const passwordHash = await hash(body.password);
+
+    const result = await pool.query(
+        'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, created_at',
+        [email, passwordHash, body.name]
+    )
+
+    const user = result.rows[0];
+
+    const token = await reply.jwtSign({ sub: user.id });
+
+    reply.setCookie('token', token, {
+        httpOnly: true,
+        path: '/',
+        sameSite: 'lax',
+    })
+        
+    return reply.code(201).send(user)
+});
+
+const loginBodySchema = z.object({
+    email: z.email(),
+    password: z.string().min(8),
+});
+
+app.post('/auth/login', async (req, reply) => {
+    const body = loginBodySchema.parse(req.body);
+    const email = body.email.toLowerCase();
+
+    const result = await pool.query('SELECT id, name, password_hash FROM users WHERE email = $1', [email]);
+
+    if(!result.rows.length) {
+        return reply.code(401).send({
+            error: 'unauthorized',
+            message: 'Invalid email or password'
+        })
+    }
+
+    const user = result.rows[0];
+
+    const ok = await verify(user.password_hash, body.password);
+
+    if(!ok) {
+        return reply.code(401).send({
+            error: 'unauthorized',
+            message: 'Invalid email or password'
+        })
+    }
+
+    const token = await reply.jwtSign({ sub: user.id });
+
+    reply.setCookie('token', token, {
+        httpOnly: true,
+        path: '/',
+        sameSite: 'lax',
+    })
+
+    return reply.send({
+        id: user.id,
+        name: user.name,
+        email: body.email,
+    })
+})
+
 app.post('/auth/logout', async (_req, reply) => {
     reply.clearCookie('token', { path: '/' })
 
@@ -200,40 +195,6 @@ app.post('/auth/logout', async (_req, reply) => {
 })
 
 // projects
-
-const createProjectBodySchema = z.object({
-    key: z.string().min(1),
-    name: z.string().min(1),
-});
-
-app.post('/projects', async (req, reply) => {
-    try {
-        const ok = await requireAuth(req, reply)
-        if(!ok) return;
-
-        const body = createProjectBodySchema.parse(req.body);
-
-        const key = body.key.toUpperCase();
-
-        const result = await pool.query('INSERT INTO projects (key, name) VALUES ($1, $2) RETURNING id, key, name, created_at', [key, body.name])
-
-        const project = result.rows[0];
-
-        return reply.code(201).send(project)
-    } catch (err) {
-        if(err && typeof err === 'object' && 'code' in err && err.code === '23505')  {
-            return reply.code(409).send({
-                error: 'conflict',
-                message: 'Project key already taken'
-            })
-        }
-
-        return reply.code(400).send({
-            error: 'validation',
-            message: 'Invalid body'
-        })
-    }
-})
 
 app.get('/projects', async (req, reply) => {
     const ok = await requireAuth(req, reply)
@@ -268,6 +229,26 @@ app.get('/projects/:key', async (req, reply) => {
     return reply.send(project);
 })
 
+const createProjectBodySchema = z.object({
+    key: z.string().min(1),
+    name: z.string().min(1),
+});
+
+app.post('/projects', async (req, reply) => {
+    const ok = await requireAuth(req, reply)
+    if(!ok) return;
+
+    const body = createProjectBodySchema.parse(req.body);
+
+    const key = body.key.toUpperCase();
+
+    const result = await pool.query('INSERT INTO projects (key, name) VALUES ($1, $2) RETURNING id, key, name, created_at', [key, body.name])
+
+    const project = result.rows[0];
+
+    return reply.code(201).send(project)
+})
+
 // project - issues
 
 const getIssuesQuerySchema = z.object({
@@ -280,73 +261,66 @@ const getIssuesQuerySchema = z.object({
 });
 
 app.get('/projects/:key/issues', async (req, reply) => {
-    try {
-        const ok = await requireAuth(req, reply)
-        if(!ok) return;
+    const ok = await requireAuth(req, reply)
+    if(!ok) return;
 
-        const params = getProjectsKeyParamsSchema.parse(req.params);
-        const query = getIssuesQuerySchema.parse(req.query);
+    const params = getProjectsKeyParamsSchema.parse(req.params);
+    const query = getIssuesQuerySchema.parse(req.query);
 
-        const key = params.key.toUpperCase();
+    const key = params.key.toUpperCase();
 
-        const offset = (query.page - 1) * query.limit;
+    const offset = (query.page - 1) * query.limit;
 
-        const projectResult = await pool.query('SELECT id FROM projects WHERE key = $1', [key])
+    const projectResult = await pool.query('SELECT id FROM projects WHERE key = $1', [key])
 
-        if(!projectResult.rows.length) {
-            return reply.code(404).send({
-                error: 'not_found',
-                message: 'Project not found'
-            })
-        }
-
-        const projectId = projectResult.rows[0].id;
-
-        const issuesTotalResult = await pool.query('SELECT COUNT(*)::int AS total FROM issues WHERE project_id = $1 AND ($2::text IS NULL OR status = $2) AND ($3::text IS NULL OR priority = $3) AND ($4::bigint IS NULL OR author_id = $4) AND ($5::bigint IS NULL OR assignee_id = $5)', 
-            [projectId, query.status, query.priority, query.author_id, query.assignee_id]) 
-    
-        const issuesTotal = issuesTotalResult.rows[0].total;
-
-        if(!issuesTotal) {
-            return reply.send({
-                issues: [],
-                meta: {
-                    total: 0,
-                    page: query.page,
-                    next_page: null,
-                    prev_page: null,
-                    limit: query.limit,
-                }
-            });
-        }
-
-        const issuesResult = await pool.query('SELECT id, project_id, number, title, description, status, priority, author_id, assignee_id, created_at, updated_at FROM issues WHERE project_id = $1 AND ($2::text IS NULL OR status = $2) AND ($3::text IS NULL OR priority = $3) AND ($4::bigint IS NULL OR author_id = $4) AND ($5::bigint IS NULL OR assignee_id = $5) ORDER BY number LIMIT $6 OFFSET $7', 
-            [projectId, query.status, query.priority, query.author_id, query.assignee_id, query.limit, offset])
-
-        const issues = issuesResult.rows.map(i => ({key: `${key}-${i.number}`, ...i}));
-
-        const hasNextPage = query.page * query.limit < issuesTotal;
-        const hasPrevPage = query.page > 1;
-
-        const nextPage = hasNextPage ? query.page + 1 : null;
-        const prevPage = hasPrevPage ? query.page - 1 : null;
-    
-        return reply.send({
-            issues,
-            meta: {
-                total: issuesTotal,
-                page: query.page,
-                next_page: nextPage,
-                prev_page: prevPage,
-                limit: query.limit,
-            }
-        })
-    } catch {
-        return reply.code(400).send({
-            error: 'validation',
-            message: 'Invalid query'
+    if(!projectResult.rows.length) {
+        return reply.code(404).send({
+            error: 'not_found',
+            message: 'Project not found'
         })
     }
+
+    const projectId = projectResult.rows[0].id;
+
+    const issuesTotalResult = await pool.query('SELECT COUNT(*)::int AS total FROM issues WHERE project_id = $1 AND ($2::text IS NULL OR status = $2) AND ($3::text IS NULL OR priority = $3) AND ($4::bigint IS NULL OR author_id = $4) AND ($5::bigint IS NULL OR assignee_id = $5)', 
+        [projectId, query.status, query.priority, query.author_id, query.assignee_id]) 
+    
+    const issuesTotal = issuesTotalResult.rows[0].total;
+
+    if(!issuesTotal) {
+        return reply.send({
+            issues: [],
+            meta: {
+                total: 0,
+                page: query.page,
+                next_page: null,
+                prev_page: null,
+                limit: query.limit,
+            }
+        });
+    }
+
+    const issuesResult = await pool.query('SELECT id, project_id, number, title, description, status, priority, author_id, assignee_id, created_at, updated_at FROM issues WHERE project_id = $1 AND ($2::text IS NULL OR status = $2) AND ($3::text IS NULL OR priority = $3) AND ($4::bigint IS NULL OR author_id = $4) AND ($5::bigint IS NULL OR assignee_id = $5) ORDER BY number LIMIT $6 OFFSET $7', 
+        [projectId, query.status, query.priority, query.author_id, query.assignee_id, query.limit, offset])
+
+    const issues = issuesResult.rows.map(i => ({key: `${key}-${i.number}`, ...i}));
+
+    const hasNextPage = query.page * query.limit < issuesTotal;
+    const hasPrevPage = query.page > 1;
+
+    const nextPage = hasNextPage ? query.page + 1 : null;
+    const prevPage = hasPrevPage ? query.page - 1 : null;
+    
+    return reply.send({
+        issues,
+        meta: {
+            total: issuesTotal,
+            page: query.page,
+            next_page: nextPage,
+            prev_page: prevPage,
+            limit: query.limit,
+        }
+    })
 })
 
 const createIssueBodySchema = z.object({
@@ -401,10 +375,7 @@ app.post('/projects/:key/issues', async (req, reply) => {
             })
         }
 
-        return reply.code(400).send({
-            error: 'validation',
-            message: 'Invalid body'
-        })
+        throw err
     } finally {
         client.release();
     }
@@ -432,10 +403,10 @@ app.get('/issues/:id', async (req, reply) => {
         })
     }
 
-    const issue = issueResult.rows[0];
+    const { project_key, ...issue} = issueResult.rows[0];
 
     return reply.send({
-        key: `${issue.project_key}-${issue.number}`,
+        key: `${project_key}-${issue.number}`,
         ...issue,
     })
 })
@@ -539,11 +510,91 @@ app.patch('/issues/:id', async (req, reply) => {
             }
         }
 
-        return reply.code(400).send({
-            error: 'validation',
-            message: 'Invalid body'
-        })
+        throw err
     } finally {
         client.release();
     }
+})
+
+const createCommentBodySchema = z.object({
+    body: z.string().min(1),
+});
+
+//  issue - comments
+
+app.get('/issues/:id/comments', async (req, reply) => {
+    const ok = await requireAuth(req, reply)
+    if(!ok) return;
+
+    const params = getIssueIdParamsSchema.parse(req.params);
+    const issueId = params.id;
+
+    const issueResult = await pool.query('SELECT id FROM issues WHERE id = $1', [issueId])
+
+    if(!issueResult.rows.length) {
+        return reply.code(404).send({
+            error: 'not_found',
+            message: 'Issue not found'
+        })
+    }
+
+    const issueCommentsResult = await pool.query('SELECT id, issue_id, author_id, body, created_at FROM comments WHERE issue_id = $1 ORDER BY created_at', [issueId])
+
+    const comments = issueCommentsResult.rows;
+
+    return reply.send(comments);
+})
+
+app.post('/issues/:id/comments', async (req, reply) => {
+    const ok = await requireAuth(req, reply)
+    if(!ok) return; 
+
+    const params = getIssueIdParamsSchema.parse(req.params);
+    const body = createCommentBodySchema.parse(req.body);
+
+    const issueId = params.id;
+
+    const issueResult = await pool.query('SELECT id FROM issues WHERE id = $1', [issueId])
+
+    if(!issueResult.rows.length) {
+        return reply.code(404).send({
+            error: 'not_found',
+            message: 'Issue not found'
+        })
+    }
+
+    const issueCommentResult = await pool.query('INSERT INTO comments (issue_id, author_id, body) VALUES ($1, $2, $3) RETURNING id, issue_id, author_id, body, created_at', 
+        [issueId, req.user.sub, body.body]
+    )
+
+    const comment = issueCommentResult.rows[0];
+
+    return reply.code(201).send(comment);
+})
+
+//  issue - events
+
+app.get('/issues/:id/events', async (req, reply) => {
+    const ok = await requireAuth(req, reply)
+    if(!ok) return;
+
+    const params = getIssueIdParamsSchema.parse(req.params);
+    const issueId = params.id;
+
+    const issueResult = await pool.query('SELECT id FROM issues WHERE id = $1', [issueId]);
+
+    if(!issueResult.rows.length) {
+        return reply.code(404).send({
+            error: 'not_found',
+            message: 'Issue not found'
+        })
+    }
+
+    const issueEventsResult = await pool.query('SELECT id, issue_id, actor_id, field, old_value, new_value, created_at FROM issue_events WHERE issue_id = $1 ORDER BY created_at', 
+        [issueId]
+    );
+
+    const events = issueEventsResult.rows;
+
+    return reply.send(events);
 })
