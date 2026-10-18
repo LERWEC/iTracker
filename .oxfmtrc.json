@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "useTabs": false,
+  "singleQuote": true,
+  "semi": true,
+  "printWidth": 100,
+  "ignorePatterns": ["**/node_modules/**", "**/dist/**", "**/*.lock", "server/cookies.txt"]
+}

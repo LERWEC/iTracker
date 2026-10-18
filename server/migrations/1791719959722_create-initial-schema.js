@@ -9,7 +9,7 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-    pgm.sql(`
+  pgm.sql(`
       CREATE TABLE users (
         id bigserial PRIMARY KEY,
         email text NOT NULL UNIQUE,
@@ -72,11 +72,11 @@ export const up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
-    pgm.sql(`
+  pgm.sql(`
       DROP TABLE issue_events;
       DROP TABLE comments;
       DROP TABLE issues;
       DROP TABLE projects;
       DROP TABLE users;
-    `)
+    `);
 };

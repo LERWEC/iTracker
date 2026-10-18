@@ -43,17 +43,17 @@ HTTP-слой, работа с Postgres, транзакции, аутентиф�
 
 **Бэкенд**
 
-| Что | Чем |
-| --- | --- |
-| Язык | TypeScript, Node 24 |
-| HTTP | Fastify |
-| База | PostgreSQL 14 (в Docker) |
-| Доступ к БД | драйвер `pg`, SQL пишем руками |
-| Миграции | `node-pg-migrate` |
-| Валидация | `zod` |
-| Пароли | `argon2` |
-| Сессия | JWT в httpOnly-куке (`@fastify/jwt` + `@fastify/cookie`) |
-| Запуск в dev | `tsx watch` |
+| Что          | Чем                                                      |
+| ------------ | -------------------------------------------------------- |
+| Язык         | TypeScript, Node 24                                      |
+| HTTP         | Fastify                                                  |
+| База         | PostgreSQL 14 (в Docker)                                 |
+| Доступ к БД  | драйвер `pg`, SQL пишем руками                           |
+| Миграции     | `node-pg-migrate`                                        |
+| Валидация    | `zod`                                                    |
+| Пароли       | `argon2`                                                 |
+| Сессия       | JWT в httpOnly-куке (`@fastify/jwt` + `@fastify/cookie`) |
+| Запуск в dev | `tsx watch`                                              |
 
 **Фронтенд:** Vue 3 + Vite + TypeScript, Tailwind, Vue Router, Pinia (если понадобится стор).
 
@@ -65,51 +65,51 @@ HTTP-слой, работа с Postgres, транзакции, аутентиф�
 
 ### users
 
-| Поле | Тип | Примечание |
-| --- | --- | --- |
-| id | bigserial | PK |
-| email | text | NOT NULL, UNIQUE (хранить в нижнем регистре) |
-| password_hash | text | NOT NULL |
-| name | text | NOT NULL |
-| created_at | timestamptz | NOT NULL, default now() |
+| Поле          | Тип         | Примечание                                   |
+| ------------- | ----------- | -------------------------------------------- |
+| id            | bigserial   | PK                                           |
+| email         | text        | NOT NULL, UNIQUE (хранить в нижнем регистре) |
+| password_hash | text        | NOT NULL                                     |
+| name          | text        | NOT NULL                                     |
+| created_at    | timestamptz | NOT NULL, default now()                      |
 
 ### projects
 
-| Поле | Тип | Примечание |
-| --- | --- | --- |
-| id | bigserial | PK |
-| key | text | NOT NULL, UNIQUE — префикс задач, например `TEST` |
-| name | text | NOT NULL |
-| created_at | timestamptz | NOT NULL, default now() |
+| Поле       | Тип         | Примечание                                        |
+| ---------- | ----------- | ------------------------------------------------- |
+| id         | bigserial   | PK                                                |
+| key        | text        | NOT NULL, UNIQUE — префикс задач, например `TEST` |
+| name       | text        | NOT NULL                                          |
+| created_at | timestamptz | NOT NULL, default now()                           |
 
 ### issues
 
-| Поле | Тип | Примечание |
-| --- | --- | --- |
-| id | bigserial | PK |
-| project_id | bigint | FK → projects.id, NOT NULL |
-| number | integer | NOT NULL — порядковый номер **внутри проекта** |
-| title | text | NOT NULL |
-| description | text | может быть пустым |
-| status | text | `todo` / `in_progress` / `in_review` / `done` |
-| priority | text | `low` / `medium` / `high` / `critical` |
-| author_id | bigint | FK → users.id, NOT NULL |
-| assignee_id | bigint | FK → users.id, NULL если не назначен |
-| created_at | timestamptz | NOT NULL, default now() |
-| updated_at | timestamptz | NOT NULL, default now() |
+| Поле        | Тип         | Примечание                                     |
+| ----------- | ----------- | ---------------------------------------------- |
+| id          | bigserial   | PK                                             |
+| project_id  | bigint      | FK → projects.id, NOT NULL                     |
+| number      | integer     | NOT NULL — порядковый номер **внутри проекта** |
+| title       | text        | NOT NULL                                       |
+| description | text        | может быть пустым                              |
+| status      | text        | `todo` / `in_progress` / `in_review` / `done`  |
+| priority    | text        | `low` / `medium` / `high` / `critical`         |
+| author_id   | bigint      | FK → users.id, NOT NULL                        |
+| assignee_id | bigint      | FK → users.id, NULL если не назначен           |
+| created_at  | timestamptz | NOT NULL, default now()                        |
+| updated_at  | timestamptz | NOT NULL, default now()                        |
 
 Ограничения и индексы: `UNIQUE (project_id, number)`, индекс на `(project_id, status)`,
 индекс на `assignee_id`. Статус и приоритет ограничить через `CHECK` или enum-тип.
 
 ### comments
 
-| Поле | Тип | Примечание |
-| --- | --- | --- |
-| id | bigserial | PK |
-| issue_id | bigint | FK → issues.id, ON DELETE CASCADE |
-| author_id | bigint | FK → users.id |
-| body | text | NOT NULL |
-| created_at | timestamptz | NOT NULL, default now() |
+| Поле       | Тип         | Примечание                        |
+| ---------- | ----------- | --------------------------------- |
+| id         | bigserial   | PK                                |
+| issue_id   | bigint      | FK → issues.id, ON DELETE CASCADE |
+| author_id  | bigint      | FK → users.id                     |
+| body       | text        | NOT NULL                          |
+| created_at | timestamptz | NOT NULL, default now()           |
 
 Индекс на `(issue_id, created_at)`.
 
@@ -117,15 +117,15 @@ HTTP-слой, работа с Postgres, транзакции, аутентиф�
 
 Журнал изменений задачи — одна строка на одно изменённое поле.
 
-| Поле | Тип | Примечание |
-| --- | --- | --- |
-| id | bigserial | PK |
-| issue_id | bigint | FK → issues.id, ON DELETE CASCADE |
-| actor_id | bigint | FK → users.id — кто поменял |
-| field | text | что поменялось: `status`, `assignee`, `priority`, `title` |
-| old_value | text | NULL для события создания |
-| new_value | text | |
-| created_at | timestamptz | NOT NULL, default now() |
+| Поле       | Тип         | Примечание                                                |
+| ---------- | ----------- | --------------------------------------------------------- |
+| id         | bigserial   | PK                                                        |
+| issue_id   | bigint      | FK → issues.id, ON DELETE CASCADE                         |
+| actor_id   | bigint      | FK → users.id — кто поменял                               |
+| field      | text        | что поменялось: `status`, `assignee`, `priority`, `title` |
+| old_value  | text        | NULL для события создания                                 |
+| new_value  | text        |                                                           |
+| created_at | timestamptz | NOT NULL, default now()                                   |
 
 Индекс на `(issue_id, created_at)`.
 
@@ -151,46 +151,46 @@ HTTP-слой, работа с Postgres, транзакции, аутентиф�
 
 ### Аутентификация
 
-| Метод | Путь | Что делает |
-| --- | --- | --- |
-| POST | `/auth/register` | email, password, name → создаёт пользователя, ставит куку |
-| POST | `/auth/login` | email, password → ставит куку |
-| POST | `/auth/logout` | снимает куку |
-| GET | `/auth/me` | текущий пользователь |
+| Метод | Путь             | Что делает                                                |
+| ----- | ---------------- | --------------------------------------------------------- |
+| POST  | `/auth/register` | email, password, name → создаёт пользователя, ставит куку |
+| POST  | `/auth/login`    | email, password → ставит куку                             |
+| POST  | `/auth/logout`   | снимает куку                                              |
+| GET   | `/auth/me`       | текущий пользователь                                      |
 
 ### Проекты
 
-| Метод | Путь | Что делает |
-| --- | --- | --- |
-| GET | `/projects` | список всех проектов |
-| POST | `/projects` | key, name |
-| GET | `/projects/:key` | один проект |
+| Метод | Путь             | Что делает           |
+| ----- | ---------------- | -------------------- |
+| GET   | `/projects`      | список всех проектов |
+| POST  | `/projects`      | key, name            |
+| GET   | `/projects/:key` | один проект          |
 
 ### Задачи
 
-| Метод | Путь | Что делает |
-| --- | --- | --- |
-| GET | `/projects/:key/issues` | список; query: `status`, `assigneeId`, `limit`, `offset` |
-| POST | `/projects/:key/issues` | title, description, priority, assigneeId |
-| GET | `/issues/:id` | карточка задачи |
-| PATCH | `/issues/:id` | частичное обновление, пишет события в историю |
-| GET | `/issues/:id/events` | история изменений |
+| Метод | Путь                    | Что делает                                               |
+| ----- | ----------------------- | -------------------------------------------------------- |
+| GET   | `/projects/:key/issues` | список; query: `status`, `assigneeId`, `limit`, `offset` |
+| POST  | `/projects/:key/issues` | title, description, priority, assigneeId                 |
+| GET   | `/issues/:id`           | карточка задачи                                          |
+| PATCH | `/issues/:id`           | частичное обновление, пишет события в историю            |
+| GET   | `/issues/:id/events`    | история изменений                                        |
 
 Ответ списка задач: `{ items: [...], total: number, limit: number, offset: number }`.
 Пагинация через `limit`/`offset` — этого достаточно. Keyset-пагинация — тема на потом.
 
 ### Комментарии
 
-| Метод | Путь | Что делает |
-| --- | --- | --- |
-| GET | `/issues/:id/comments` | список комментариев задачи |
-| POST | `/issues/:id/comments` | body |
+| Метод | Путь                   | Что делает                 |
+| ----- | ---------------------- | -------------------------- |
+| GET   | `/issues/:id/comments` | список комментариев задачи |
+| POST  | `/issues/:id/comments` | body                       |
 
 ### Служебное
 
-| Метод | Путь | Что делает |
-| --- | --- | --- |
-| GET | `/health` | проверка, что сервер жив и база отвечает |
+| Метод | Путь      | Что делает                               |
+| ----- | --------- | ---------------------------------------- |
+| GET   | `/health` | проверка, что сервер жив и база отвечает |
 
 ---
 
@@ -285,21 +285,25 @@ testback/
 или через curl».
 
 **Эпик: Аутентификация**
+
 - Как гость, я могу зарегистрироваться по email и паролю и сразу оказаться залогиненным
 - Как пользователь, я могу войти и выйти, и после перезагрузки страницы остаюсь внутри
 - Как гость, я получаю 401 при попытке дёрнуть защищённый эндпоинт
 
 **Эпик: Задачи**
+
 - Как пользователь, я могу создать задачу в проекте и получить ей номер вида `TEST-1`
 - Как пользователь, я вижу список задач проекта и могу отфильтровать его по статусу
 - Как пользователь, я могу отфильтровать список по исполнителю
 - Как пользователь, я могу открыть карточку задачи и изменить её статус, приоритет и исполнителя
 
 **Эпик: Обсуждение**
+
 - Как пользователь, я могу оставить комментарий к задаче
 - Как пользователь, я вижу историю изменений задачи: кто, что и когда поменял
 
 **Эпик: Фронт**
+
 - Экран входа
 - Список задач с фильтрами
 - Карточка задачи

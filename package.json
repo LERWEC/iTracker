@@ -1,0 +1,11 @@
+{
+  "name": "testback",
+  "private": true,
+  "scripts": {
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.73.0"
+  }
+}
