@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
+import { api } from '../api';
 
 const form = reactive({
   email: '',
@@ -8,14 +9,8 @@ const form = reactive({
 
 const handleLogin = async () => {
   try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(form),
-    });
-
-    console.log(res);
+    const user = await api.post('/auth/login', form);
+    console.log(user);
   } catch {
     console.error('Failed to login');
   }
@@ -23,11 +18,8 @@ const handleLogin = async () => {
 
 const logout = async () => {
   try {
-    const res = await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    });
-    console.log(res);
+    const result = await api.post('/auth/logout');
+    console.log(result);
   } catch {
     console.error('Failed to logout');
   }
@@ -40,3 +32,4 @@ const logout = async () => {
   <input type="password" v-model="form.password" placeholder="Password" />
   <button @click="logout">Войти</button>
 </template>
+
