@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { reactive } from 'vue';
-import { api } from '../api';
+import { reactive, ref } from 'vue';
+import { api, ApiPath } from '../api';
+import { useRouter } from 'vue-router';
+import { Routes } from '../router';
+
+const router = useRouter();
+
+const showErrorMessage = ref(false);
 
 const form = reactive({
   email: '',
@@ -9,27 +15,30 @@ const form = reactive({
 
 const handleLogin = async () => {
   try {
-    const user = await api.post('/auth/login', form);
-    console.log(user);
-  } catch {
-    console.error('Failed to login');
-  }
-};
-
-const logout = async () => {
-  try {
-    const result = await api.post('/auth/logout');
-    console.log(result);
-  } catch {
-    console.error('Failed to logout');
+    await api.post(ApiPath.AuthLogin, form);
+    await router.push(Routes.Main);
+  } catch (error) {
+    showErrorMessage.value = true;
+    console.error(error);
   }
 };
 </script>
 
 <template>
-  <p>Вход</p>
-  <input type="email" v-model="form.email" placeholder="Email" />
-  <input type="password" v-model="form.password" placeholder="Password" />
-  <button @click="logout">Войти</button>
+  <div class="flex flex-col gap-2 items-center">
+    <h2 class="text-2xl">Вход</h2>
+    <p v-if="showErrorMessage" class="text-sm text-error">Неверный email или пароль</p>
+    <form @submit.prevent="handleLogin" class="flex flex-col gap-4 w-full">
+      <UIInput v-model="form.email" placeholder="Email" name="email" label="Email" />
+      <UIInputPassword
+        v-model="form.password"
+        placeholder="Password"
+        name="password"
+        label="Password" />
+      <RouterLink :to="Routes.AuthRegister">
+        <UIButton class="w-full" variant="outline">Зарегистрироваться</UIButton>
+      </RouterLink>
+      <UIButton class="w-full" type="submit">Войти</UIButton>
+    </form>
+  </div>
 </template>
-

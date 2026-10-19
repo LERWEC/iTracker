@@ -30,3 +30,16 @@ export const api = {
     return request('PATCH', path, params);
   },
 };
+
+export enum ApiPath {
+  AuthLogin = '/auth/login',
+  AuthRegister = '/auth/register',
+  AuthMe = '/auth/me',
+  AuthLogout = '/auth/logout',
+  Projects = '/projects',
+  ProjectsKey = '/projects/:key',
+  ProjectsKeyIssues = '/projects/:key/issues',
+  IssuesId = '/issues/:id',
+  IssuesIdComments = '/issues/:id/comments',
+  IssuesIdEvents = '/issues/:id/events',
+}

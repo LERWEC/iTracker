@@ -1,11 +1,48 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import LoginPage from './pages/LoginPage.vue';
-import HomePage from './pages/HomePage.vue';
+import { api, ApiPath } from './api';
+
+export enum Routes {
+  Main = '/',
+  AuthLogin = '/auth/login',
+  AuthRegister = '/auth/register',
+}
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: HomePage },
-    { path: '/login', component: LoginPage },
+    {
+      path: Routes.Main,
+      component: () => import('./layouts/DefaultLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        { path: '', component: () => import('./pages/MainPage.vue') },
+      ],
+    },
+    {
+      path: '/auth',
+      component: () => import('./layouts/AuthLayout.vue'),
+      children: [
+        { path: 'login', component: () => import('./pages/LoginPage.vue') },
+        { path: 'register', component: () => import('./pages/RegisterPage.vue') },
+      ],
+    },
   ],
+});
+
+router.beforeEach(async (to) => {
+  let user = null;
+
+  try {
+    user = await api.get(ApiPath.AuthMe);
+  } catch {
+    user = null;
+  }
+
+  if (to.meta.requiresAuth && !user) {
+    return Routes.AuthLogin;
+  }
+
+  if (to.path.startsWith('/auth') && user) {
+    return Routes.Main;
+  }
 });
