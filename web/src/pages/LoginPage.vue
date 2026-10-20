@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
-import { api, ApiPath } from '../api';
+import { api } from '../api';
 import { useRouter } from 'vue-router';
 import { Routes } from '../router';
 
@@ -15,7 +15,7 @@ const form = reactive({
 
 const handleLogin = async () => {
   try {
-    await api.post(ApiPath.AuthLogin, form);
+    await api.post('/auth/login', form);
     await router.push(Routes.Main);
   } catch (error) {
     showErrorMessage.value = true;

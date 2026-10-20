@@ -1,13 +1,15 @@
 async function request(method: string, path: string, params?: unknown) {
-  const body = !!params ? {
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  } : {};
+  const body = !!params
+    ? {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      }
+    : {};
 
   const res = await fetch(`/api${path}`, {
     method,
     credentials: 'include',
-    ...body
+    ...body,
   });
 
   const data = await res.json().catch(() => null);
@@ -30,16 +32,3 @@ export const api = {
     return request('PATCH', path, params);
   },
 };
-
-export enum ApiPath {
-  AuthLogin = '/auth/login',
-  AuthRegister = '/auth/register',
-  AuthMe = '/auth/me',
-  AuthLogout = '/auth/logout',
-  Projects = '/projects',
-  ProjectsKey = '/projects/:key',
-  ProjectsKeyIssues = '/projects/:key/issues',
-  IssuesId = '/issues/:id',
-  IssuesIdComments = '/issues/:id/comments',
-  IssuesIdEvents = '/issues/:id/events',
-}

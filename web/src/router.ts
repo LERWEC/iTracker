@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { api, ApiPath } from './api';
+import { api } from './api';
 
 export enum Routes {
   Main = '/',
@@ -14,9 +14,7 @@ export const router = createRouter({
       path: Routes.Main,
       component: () => import('./layouts/DefaultLayout.vue'),
       meta: { requiresAuth: true },
-      children: [
-        { path: '', component: () => import('./pages/MainPage.vue') },
-      ],
+      children: [{ path: '', component: () => import('./pages/MainPage.vue') }],
     },
     {
       path: '/auth',
@@ -33,7 +31,7 @@ router.beforeEach(async (to) => {
   let user = null;
 
   try {
-    user = await api.get(ApiPath.AuthMe);
+    user = await api.get('/auth/me');
   } catch {
     user = null;
   }
