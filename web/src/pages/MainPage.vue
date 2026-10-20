@@ -122,7 +122,13 @@ onMounted(async () => {
       </div>
       <UIButton @click="handleOpenCreateProject">Создать проект</UIButton>
     </div>
-    <div class="flex flex-col justify-between h-full">
+    <div v-if="!projects.length">
+      <p>Проекты не найдены</p>
+    </div>
+    <div v-else-if="!issues.length">
+      <p>Задачи не найдены</p>
+    </div>
+    <div v-else class="flex flex-col justify-between h-full">
       <div class="flex flex-col gap-4">
         <h3 class="text-xl">{{ projectActive?.name }}: {{ total }} задач</h3>
         <div class="flex flex-col gap-2 justify-between">
