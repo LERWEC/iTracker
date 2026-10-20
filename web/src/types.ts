@@ -17,11 +17,28 @@ export interface Issue {
   key: string;
   title: string;
   description: string;
-  status: string;
-  priority: string;
-  type: string;
-  assignee: string;
-  reporter: string;
+  status: IssueStatus;
+  priority: IssuePriority;
+  assignee_id: string;
+  author_id: string;
+}
+
+export interface IssueEvent {
+  id: string;
+  issue_id: string;
+  actor_id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: Date;
+}
+
+export interface IssueComment {
+  id: string;
+  issue_id: string;
+  author_id: string;
+  body: string;
+  created_at: Date;
 }
 
 export interface Meta {

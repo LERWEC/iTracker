@@ -12,10 +12,19 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     copy: typeof import('./components/UI/UIInput copy.vue')['default']
+    ModalCreateIssue: typeof import('./components/Modal/ModalCreateIssue.vue')['default']
+    ModalCreateProject: typeof import('./components/Modal/ModalCreateProject.vue')['default']
+    ModalEditIssue: typeof import('./components/Modal/ModalEditIssue.vue')['default']
+    ModalIssue: typeof import('./components/Modal/ModalIssue.vue')['default']
+    Priority: typeof import('./components/Priority.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    Spiner: typeof import('./components/Spiner.vue')['default']
+    Status: typeof import('./components/Status.vue')['default']
     UIButton: typeof import('./components/UI/UIButton.vue')['default']
     UIInput: typeof import('./components/UI/UIInput.vue')['default']
     UIInputPassword: typeof import('./components/UI/UIInputPassword.vue')['default']
+    UIModal: typeof import('./components/UI/UIModal.vue')['default']
+    UISelect: typeof import('./components/UI/UISelect.vue')['default']
   }
 }

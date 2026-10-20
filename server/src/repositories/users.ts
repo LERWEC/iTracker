@@ -42,7 +42,9 @@ export async function insertUser(params: InsertUserParams): Promise<InsertUserRe
   return result.rows[0];
 }
 
-export async function selectUserLogin(params: SelectUserLoginParams): Promise<SelectUserLoginResult | null> {
+export async function selectUserLogin(
+  params: SelectUserLoginParams,
+): Promise<SelectUserLoginResult | null> {
   const { email } = params;
 
   const result = await pool.query(
@@ -53,13 +55,16 @@ export async function selectUserLogin(params: SelectUserLoginParams): Promise<Se
   return result.rows[0] ?? null;
 }
 
+export async function selectUsers(): Promise<InsertUserResult[] | null> {
+  const result = await pool.query('SELECT id, email, name, created_at FROM users');
+
+  return result.rows;
+}
+
 export async function selectUser(params: IdParams): Promise<SelectUserResult | null> {
   const { id } = params;
 
-  const result = await pool.query(
-    'SELECT id, name, email FROM users WHERE id = $1',
-    [id],
-  );
+  const result = await pool.query('SELECT id, name, email FROM users WHERE id = $1', [id]);
 
   return result.rows[0] ?? null;
 }

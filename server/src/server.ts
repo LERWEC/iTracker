@@ -5,12 +5,17 @@ import jwtPlugin from '@fastify/jwt';
 import { pool } from './db';
 import z from 'zod';
 
-import { loginRoute, logoutRoute, meRoute, registerRoute } from './routes/auth'
+import { loginRoute, logoutRoute, meRoute, registerRoute } from './routes/auth';
 import { createProjectRoute, getProjectRoute, listProjectsRoute } from './routes/projects';
-import { changeIssueRoute, createIssueRoute, getIssueRoute, listIssuesRoute } from './routes/issues';
+import {
+  changeIssueRoute,
+  createIssueRoute,
+  getIssueRoute,
+  listIssuesRoute,
+} from './routes/issues';
 import { createCommentRoute, listCommentsRoute } from './routes/comments';
 import { listIssueEventsRoute } from './routes/events';
-
+import { listUsersRoute } from './routes/users';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -95,6 +100,8 @@ app.get('/auth/me', meRoute);
 
 app.post('/auth/logout', logoutRoute);
 
+// users
+app.get('/users', listUsersRoute);
 
 // projects
 app.get('/projects', listProjectsRoute);
@@ -102,7 +109,6 @@ app.get('/projects', listProjectsRoute);
 app.get('/projects/:key', getProjectRoute);
 
 app.post('/projects', createProjectRoute);
-
 
 // issues
 app.get('/issues/:id', getIssueRoute);
@@ -113,12 +119,10 @@ app.post('/projects/:key/issues', createIssueRoute);
 
 app.patch('/issues/:id', changeIssueRoute);
 
-
 //  comments
 app.get('/issues/:id/comments', listCommentsRoute);
 
 app.post('/issues/:id/comments', createCommentRoute);
-
 
 //  events
 app.get('/issues/:id/events', listIssueEventsRoute);
